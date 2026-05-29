@@ -6,6 +6,7 @@ import api from "../api/axios";
 import { AuthContext } from "../context/AuthContext.jsx";
 import { auth, googleProvider } from "../utils/firebase";
 import { signInWithPopup } from "firebase/auth";
+import FormError from "../components/common/FormError";
 
 // Colored Google SVG Icon
 const GoogleIcon = () => (
@@ -335,11 +336,7 @@ const Login = () => {
             </div>
           </div>
           
-          {error && (
-            <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-sm text-red-500">
-              {error}
-            </div>
-          )}
+          <FormError error={error} />
           
           <button
             ref={buttonRef}

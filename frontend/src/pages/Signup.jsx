@@ -5,6 +5,7 @@ import api from "../api/axios";
 import { AuthContext } from "../context/AuthContext.jsx";
 import { auth, googleProvider } from "../utils/firebase";
 import { signInWithPopup } from "firebase/auth";
+import FormError from "../components/common/FormError";
 
 // Google Icon
 const GoogleIcon = () => (
@@ -282,21 +283,7 @@ const Signup = () => {
           </div>
 
           {/* Error */}
-          {errorMessage && (
-            <div
-              className="
-                px-4 py-3
-                rounded-2xl
-                text-sm
-                border
-                bg-red-500/10
-                border-red-500/20
-                text-red-500
-              "
-            >
-              {errorMessage}
-            </div>
-          )}
+          <FormError error={errorMessage} />
 
           {/* Name */}
           <div className="flex flex-col gap-2">
@@ -322,9 +309,7 @@ const Signup = () => {
                 text-sm
               "
             />
-            {errors.name && (
-              <span className="text-red-500 text-xs">{errors.name}</span>
-            )}
+            <FormError error={errors.name} />
           </div>
 
           {/* Email */}
@@ -400,9 +385,7 @@ const Signup = () => {
                 )}
               </button>
             </div>
-            {errors.password && (
-              <span className="text-red-500 text-xs">{errors.password}</span>
-            )}
+            <FormError error={errors.password} />
           </div>
 
           {/* Confirm Password */}
@@ -452,9 +435,7 @@ const Signup = () => {
                 )}
               </button>
             </div>
-            {errors.confirmPassword && (
-              <span className="text-red-500 text-xs">{errors.confirmPassword}</span>
-            )}
+            <FormError error={errors.confirmPassword} />
           </div>
 
           {/* Submit */}
