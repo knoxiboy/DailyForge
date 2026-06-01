@@ -2,6 +2,7 @@ import OnboardingModal from "../components/OnboardingModal";
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { SocketContext } from "../context/SocketContext";
 import { CheckCircle2, Calendar, Flame, ArrowRight, RotateCw, Copy } from "lucide-react";
 import LiveClock from "../components/Dashboard/LiveClock";
 import StatCard from "../components/Dashboard/StatCard";
@@ -102,10 +103,17 @@ export default function Dashboard() {
       setLoadingRoutines(false);
     }
   };
+  const { routineUpdateTick } = useContext(SocketContext) || {};
+
   useEffect(() => {
     fetchRoutines();
   }, []);
 
+  useEffect(() => {
+    if (routineUpdateTick > 0) {
+      fetchRoutines();
+    }
+  }, [routineUpdateTick]);
 const openDuplicateModal = (routine) => {
   setRoutineToDuplicate(routine);
   setDuplicateTargetDay(routine.items[0]?.day || DAYS_OF_WEEK[0]);
