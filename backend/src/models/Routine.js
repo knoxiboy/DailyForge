@@ -109,6 +109,10 @@ const routineSchema = mongoose.Schema(
         },
       },
     ],
+    orderIndex: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

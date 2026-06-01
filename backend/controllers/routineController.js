@@ -159,6 +159,7 @@ export const getRoutines = async (req, res) => {
 
     // fetch routines from database
     const routines = await Routine.find({ userId: userId }).sort({
+      orderIndex: 1,
       createdAt: -1,
     });
     if (routines.length == 0) {
@@ -405,5 +406,35 @@ export const deleteRoutine = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, message: "Error deleting routine" });
+  }
+};
+
+// Reorder routine items function
+export const reorderRoutine = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { routineIds } = req.body;
+
+    if (!routineIds || !Array.isArray(routineIds)) {
+      return res.status(400).json({ success: false, message: "routineIds array is required" });
+    }
+
+    // Update orderIndex for each routine
+    const updatePromises = routineIds.map((id, index) => 
+      Routine.findOneAndUpdate(
+        { _id: id, userId },
+        { $set: { orderIndex: index } }
+      )
+    );
+
+    await Promise.all(updatePromises);
+
+    return res.status(200).json({
+      success: true,
+      message: "Routines reordered successfully"
+    });
+  } catch (error) {
+    console.log("Error reordering routines", error);
+    return res.status(500).json({ success: false, message: "Error reordering routines" });
   }
 };

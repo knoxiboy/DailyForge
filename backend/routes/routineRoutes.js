@@ -5,6 +5,7 @@ import {
   duplicateRoutine,
   getRoutines,
   updateRoutine,
+  reorderRoutine,
 } from "../controllers/routineController.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import mongoose from "mongoose";
@@ -35,6 +36,9 @@ routineRouter.post("/:id/duplicate", authMiddleware, duplicateRoutine);
 
 // Route for updating routine
 routineRouter.put("/:id", authMiddleware, validateObjectId, asyncHandler(updateRoutine));
+
+// Route for reordering routine items
+routineRouter.put("/reorder", authMiddleware, asyncHandler(reorderRoutine));
 
 // Route for deleting routine
 routineRouter.delete("/:id", authMiddleware, validateObjectId, asyncHandler(deleteRoutine));
