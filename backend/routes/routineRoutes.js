@@ -34,11 +34,11 @@ routineRouter.get("/", authMiddleware, asyncHandler(getRoutines));
 // Route for duplicating routine
 routineRouter.post("/:id/duplicate", authMiddleware, duplicateRoutine);
 
-// Route for updating routine
-routineRouter.put("/:id", authMiddleware, validateObjectId, asyncHandler(updateRoutine));
-
 // Route for reordering routine items
 routineRouter.put("/reorder", authMiddleware, asyncHandler(reorderRoutine));
+
+// Route for updating routine
+routineRouter.put("/:id", authMiddleware, validateObjectId, asyncHandler(updateRoutine));
 
 // Route for deleting routine
 routineRouter.delete("/:id", authMiddleware, validateObjectId, asyncHandler(deleteRoutine));
