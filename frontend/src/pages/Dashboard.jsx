@@ -7,6 +7,7 @@ import LiveClock from "../components/Dashboard/LiveClock";
 import StatCard from "../components/Dashboard/StatCard";
 import TaskPreview from "../components/Dashboard/TaskPreview";
 import DashboardTasks from "../components/Dashboard/DashboardTasks";
+import ReflectionSummary from "../components/Dashboard/ReflectionSummary";
 import ContributionHeatmap from "../components/Dashboard/ContributionHeatmap";
 import RoutineList from "../components/Routine/RoutineList";
 import api from "../api/axios.js";
@@ -14,6 +15,7 @@ import useTasks from "../hooks/useTasks.js";
 import useMixedTasks from "../hooks/useMixedTasks.js";
 import { getGreeting } from "../utils/getGreeting";
 import { DAYS_OF_WEEK } from "../utils/constants";
+import LoadingSpinner from "../components/common/LoadingSpinner";
 
 export default function Dashboard() {
   const { user } = useContext(AuthContext);
@@ -25,7 +27,7 @@ export default function Dashboard() {
   const [routineToDuplicate, setRoutineToDuplicate] = useState(null);
   const [duplicateTargetDay, setDuplicateTargetDay] = useState(DAYS_OF_WEEK[0]);
 
-  const { tasks, updateTask: updateDbTask } = useTasks();
+  const { tasks, loading: tasksLoading, updateTask: updateDbTask } = useTasks();
   const { updateTask, routineTasks } = useMixedTasks(updateDbTask);
   const [showProfilePreview, setShowProfilePreview] = useState(false);
   const [profileImage, setProfileImage] = useState(() => {
@@ -229,8 +231,12 @@ const handleDuplicateRoutine = async () => {
           </div>
         )}
 
-      {/* Stats Row */}
-      <section className="flex flex-col lg:flex-row gap-6 w-full">
+      {tasksLoading ? (
+        <LoadingSpinner />
+      ) : (
+        <>
+          {/* Stats Row */}
+          <section className="flex flex-col lg:flex-row gap-6 w-full">
         <div className="flex-1 animate-in delay-100">
           <StatCard
             label="Today"
@@ -239,7 +245,7 @@ const handleDuplicateRoutine = async () => {
             icon={<CheckCircle2 size={20} />}
           />
         </div>
-        <div className="flex-1 animate-in delay-200">
+        <div className="flex-1 animate-in delay-200 transition-none">
           <StatCard
             label="This Week"
             value={`${weeklyCompletionPercent}%`}
@@ -249,6 +255,14 @@ const handleDuplicateRoutine = async () => {
         </div>
       </section>
 
+      {/* Daily Reflection Summary - placed below StatCards and above Today's Tasks */}
+      <ReflectionSummary
+        completedToday={completedToday}
+        totalToday={totalToday}
+        weeklyCompletionPercent={weeklyCompletionPercent}
+        tasks={tasks}
+        upcomingTasks={upcomingTasks}
+      />
       {/* Contribution Heatmap */}
       <div className="w-full animate-in delay-200">
         <ContributionHeatmap tasks={tasks} routineTasks={routineTasks} />
@@ -291,7 +305,7 @@ const handleDuplicateRoutine = async () => {
               </button>                                                           
             </div>                                                               
             <button
-              className="group flex gap-2 self-center px-4 py-2 rounded-lg bg-(--primary) text-white text-sm font-medium hover:opacity-90 active:scale-95 transition-all duration-150 cursor-pointer"
+              className="group flex gap-2 self-center px-4 py-2 rounded-lg bg-(--primary) text-white text-sm font-medium hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer"
               onClick={() => navigate("/routine-builder")}
             >
               Build
@@ -309,9 +323,46 @@ const handleDuplicateRoutine = async () => {
               onNavigate={(routine) => navigate("/routine-builder")}
               onDuplicate={(routine) => openDuplicateModal(routine)}
             />
+            <ul className="space-y-3">
+              {savedRoutines.map((routine) => (
+                <li
+                  key={routine._id}
+                  onClick={() => navigate("/routine-builder")}
+                  className="border-l-4 border-primary rounded-xl p-4 bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800 dark:border-gray-700/60 shadow-sm hover:shadow-md transition-all duration-200 animate-in cursor-pointer hover-lift"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium text-main">{routine.name}</p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDuplicateModal(routine);
+                      }}
+                      disabled={duplicatingRoutineId === routine._id}
+                      aria-label={`Duplicate ${routine.name}`}
+                      title="Duplicate routine"
+                      className="shrink-0 rounded-lg p-2 text-muted hover:text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  </div>
+                  {routine.description && (
+                    <p className="text-xs text-muted mt-0.5 line-clamp-2 italic">
+                      {routine.description}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-muted/80 mt-1 uppercase tracking-wider">
+                    {routine.items.length} tasks across{" "}
+                    {new Set(routine.items.map((i) => i.day)).size} day(s)
+                  </p>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </section>
+      </>
+      )}
 
       {routineToDuplicate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
