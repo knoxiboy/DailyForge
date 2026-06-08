@@ -1,12 +1,14 @@
 import OnboardingModal from "../components/OnboardingModal";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { LogOut, ArrowRight, CheckCircle2, RotateCw, Calendar, Copy } from "lucide-react";
+import { SocketContext } from "../context/SocketContext";
+import { LogOut, ArrowRight, CheckCircle2, RotateCw, Calendar, Copy, Flame } from "lucide-react";
 import LiveClock from "../components/Dashboard/LiveClock";
 import StatCard from "../components/Dashboard/StatCard";
 import TaskPreview from "../components/Dashboard/TaskPreview";
 import DashboardTasks from "../components/Dashboard/DashboardTasks";
+import ReflectionSummary from "../components/Dashboard/ReflectionSummary";
 import ContributionHeatmap from "../components/Dashboard/ContributionHeatmap";
 import RoutineList from "../components/Routine/RoutineList";
 import api from "../api/axios.js";
@@ -14,6 +16,7 @@ import useTasks from "../hooks/useTasks.js";
 import useMixedTasks from "../hooks/useMixedTasks.js";
 import { getGreeting } from "../utils/getGreeting";
 import { DAYS_OF_WEEK } from "../utils/constants";
+import LoadingSpinner from "../components/common/LoadingSpinner";
 
 export default function Dashboard() {
   const { user } = useContext(AuthContext);
@@ -25,7 +28,7 @@ export default function Dashboard() {
   const [routineToDuplicate, setRoutineToDuplicate] = useState(null);
   const [duplicateTargetDay, setDuplicateTargetDay] = useState(DAYS_OF_WEEK[0]);
 
-  const { tasks, updateTask: updateDbTask } = useTasks();
+  const { tasks, loading: tasksLoading, updateTask: updateDbTask } = useTasks();
   const { updateTask, routineTasks } = useMixedTasks(updateDbTask);
   const [showProfilePreview, setShowProfilePreview] = useState(false);
   const [profileImage, setProfileImage] = useState(() => {
@@ -91,7 +94,7 @@ export default function Dashboard() {
     .slice(0, 2);
 
   // Fetch routines
-  const fetchRoutines = async () => {
+  const fetchRoutines = useCallback(async () => {
     try {
       setLoadingRoutines(true);
       const res = await api.get("/routines");
@@ -102,15 +105,24 @@ export default function Dashboard() {
     } finally {
       setLoadingRoutines(false);
     }
-  };
-  useEffect(() => {
-    fetchRoutines();
   }, []);
 
-const openDuplicateModal = (routine) => {
-  setRoutineToDuplicate(routine);
-  setDuplicateTargetDay(routine.items[0]?.day || DAYS_OF_WEEK[0]);
-};
+  const { routineUpdateTick } = useContext(SocketContext) || {};
+
+  useEffect(() => {
+    fetchRoutines();
+  }, [fetchRoutines]);
+
+  useEffect(() => {
+    if (routineUpdateTick > 0) {
+      fetchRoutines();
+    }
+  }, [routineUpdateTick, fetchRoutines]);
+
+  const openDuplicateModal = (routine) => {
+    setRoutineToDuplicate(routine);
+    setDuplicateTargetDay(routine.items[0]?.day || DAYS_OF_WEEK[0]);
+  };
 
 const closeDuplicateModal = () => {
   setRoutineToDuplicate(null);
@@ -229,8 +241,12 @@ const handleDuplicateRoutine = async () => {
           </div>
         )}
 
-      {/* Stats Row */}
-      <section className="flex flex-col lg:flex-row gap-6 w-full">
+      {tasksLoading ? (
+        <LoadingSpinner />
+      ) : (
+        <>
+          {/* Stats Row */}
+          <section className="flex flex-col lg:flex-row gap-6 w-full">
         <div className="flex-1 animate-in delay-100">
           <StatCard
             label="Today"
@@ -239,7 +255,7 @@ const handleDuplicateRoutine = async () => {
             icon={<CheckCircle2 size={20} />}
           />
         </div>
-        <div className="flex-1 animate-in delay-200">
+        <div className="flex-1 animate-in delay-200 transition-none">
           <StatCard
             label="This Week"
             value={`${weeklyCompletionPercent}%`}
@@ -249,6 +265,14 @@ const handleDuplicateRoutine = async () => {
         </div>
       </section>
 
+      {/* Daily Reflection Summary - placed below StatCards and above Today's Tasks */}
+      <ReflectionSummary
+        completedToday={completedToday}
+        totalToday={totalToday}
+        weeklyCompletionPercent={weeklyCompletionPercent}
+        tasks={tasks}
+        upcomingTasks={upcomingTasks}
+      />
       {/* Contribution Heatmap */}
       <div className="w-full animate-in delay-200">
         <ContributionHeatmap tasks={tasks} routineTasks={routineTasks} />
@@ -291,7 +315,7 @@ const handleDuplicateRoutine = async () => {
               </button>                                                           
             </div>                                                               
             <button
-              className="group flex gap-2 self-center px-4 py-2 rounded-lg bg-(--primary) text-white text-sm font-medium hover:opacity-90 active:scale-95 transition-all duration-150 cursor-pointer"
+              className="group flex gap-2 self-center px-4 py-2 rounded-lg bg-(--primary) text-white text-sm font-medium hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer"
               onClick={() => navigate("/routine-builder")}
             >
               Build
@@ -312,6 +336,8 @@ const handleDuplicateRoutine = async () => {
           )}
         </div>
       </section>
+      </>
+      )}
 
       {routineToDuplicate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">

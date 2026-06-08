@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useContext } from "react";
+import { SocketContext } from "../context/SocketContext";
 import {
   DndContext,
   DragOverlay,
@@ -76,30 +77,7 @@ export default function RoutineBuilder() {
     }
   };
 
-  useEffect(() => {
-    fetchRoutines();
-  }, []);
-
-  useEffect(() => {
-
-  if (!savedRoutines.length) return;
-
-  const storedRoutineIds = JSON.parse(
-    localStorage.getItem("activeRoutineIds") || "[]"
-  );
-
-  if (!storedRoutineIds.length) return;
-
-  const restoredRoutines = savedRoutines.filter(
-    (routine) =>
-      storedRoutineIds.includes(routine._id)
-  );
-
-  setActiveRoutine(restoredRoutines);
-
-  }, [savedRoutines]);
-
-  const fetchRoutines = async () => {
+  const fetchRoutines = useCallback(async () => {
     try {
       setLoadingRoutines(true);
       const res = await api.get("/routines");
@@ -112,7 +90,36 @@ export default function RoutineBuilder() {
     } finally {
       setLoadingRoutines(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchRoutines();
+  }, [fetchRoutines]);
+
+  const { routineUpdateTick } = useContext(SocketContext) || {};
+
+  useEffect(() => {
+    if (routineUpdateTick > 0) {
+      fetchRoutines();
+    }
+  }, [routineUpdateTick, fetchRoutines]);
+
+  useEffect(() => {
+    if (!savedRoutines.length) return;
+
+    const storedRoutineIds = JSON.parse(
+      localStorage.getItem("activeRoutineIds") || "[]"
+    );
+
+    if (!storedRoutineIds.length) return;
+
+    const restoredRoutines = savedRoutines.filter(
+      (routine) =>
+        storedRoutineIds.includes(routine._id)
+    );
+
+    setActiveRoutine(restoredRoutines);
+  }, [savedRoutines]);
 
   const confirmSaveRoutine = async () => {
     const items = scheduledTasks
@@ -323,7 +330,7 @@ export default function RoutineBuilder() {
                 placeholder="Add a description (optional)"
                 rows="3"
                 className="w-full mb-4 rounded-lg border-soft px-3 py-2 text-sm
-                           focus:ring-primary bg-transparent text-main resize-none"
+                           focus:ring-primary dark:focus:ring-primary bg-transparent text-main dark:text-white resize-none"
               />
 
               <div className="flex justify-end gap-3">
@@ -348,7 +355,7 @@ export default function RoutineBuilder() {
         {/* Drag Overlay */}
         <DragOverlay dropAnimation={null}>
           {activeTask ? (
-            <div className="rounded-xl bg-white p-3 shadow-xl border border-gray-200">
+            <div className="rounded-xl bg-white dark:text-black p-3 shadow-xl border border-gray-200">
               {activeTask.title}
             </div>
           ) : null}

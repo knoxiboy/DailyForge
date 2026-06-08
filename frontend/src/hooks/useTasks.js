@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useContext } from "react";
 import api from "../api/axios";
+import { SocketContext } from "../context/SocketContext";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 100;
@@ -8,7 +9,9 @@ const useTasks = ({
   initialPage = DEFAULT_PAGE,
   initialLimit = DEFAULT_LIMIT,
 } = {}) => {
+  const { taskUpdateTick } = useContext(SocketContext) || {};
   const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(initialPage);
   const [pagination, setPagination] = useState({
     totalTasks: 0,
@@ -20,6 +23,7 @@ const useTasks = ({
   // fetch tasks from database
   const getTasks = useCallback(async (pageToFetch = page) => {
     try {
+      setLoading(true);
       const response = await api.get("/tasks", {
         params: {
           page: pageToFetch,
@@ -44,6 +48,8 @@ const useTasks = ({
     } catch (error) {
       console.log(error?.response?.data?.message || "Failed to load tasks");
       setTasks([]);
+    } finally {
+      setLoading(false);
     }
   }, [initialLimit, page]);
 
@@ -109,9 +115,17 @@ const useTasks = ({
     getTasks();
   }, [getTasks]);
 
+  // re-fetch on taskUpdateTick change
+  useEffect(() => {
+    if (taskUpdateTick > 0) {
+      getTasks(page);
+    }
+  }, [taskUpdateTick, getTasks, page]);
+
   // return reusable functions
   return {
     tasks,
+    loading,
     pagination,
     page,
     setPage,
